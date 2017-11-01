@@ -20,7 +20,6 @@ RUN pip install RPi.GPIO
 RUN pip install urllib3
 
 WORKDIR /usr/src/app
-RUN touch BUFFER
 COPY . ./
 
 CMD ["python", "plc_collect.py"]
