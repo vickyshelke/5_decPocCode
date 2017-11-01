@@ -12,13 +12,15 @@ RUN apt-get -q update && apt-get install -yq --no-install-recommends \
         python-dev \
         python-pip \
         python-virtualenv \
+        snmpd \
+        snmp
 && apt-get clean && rm -rf /var/lib/apt/lists/*
 RUN pip install pyserial
 RUN pip install RPi.GPIO
 RUN pip install urllib3
 
 WORKDIR /usr/src/app
-
+RUN touch BUFFER
 COPY . ./
 
 CMD ["python", "plc_collect.py"]
