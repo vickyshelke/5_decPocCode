@@ -35,10 +35,10 @@ print machineCount
 #print("total machine connected:"+str(len(machineCount)))
 
 with open("machineConfig.txt", "w+") as myfile:
+        myfile.write("[machine-config]\n")
         if any("Facility" in d for d in config_data):
                 data ="Facility              = "+ config_data[0]['Facility']+"\n"
-        myfile.write("[machine-config]\n")
-        myfile.write(data)
+                myfile.write(data)
         data ="TOTAL_MACHINES        = " +str(len(machineCount))+"\n"
         myfile.write(data)
         for x in range(int(len(machineCount))):
