@@ -18,7 +18,7 @@ RUN apt-get -q update && apt-get install -yq --no-install-recommends \
 RUN pip install pyserial
 RUN pip install RPi.GPIO
 RUN pip install urllib3
-
+RUN pip install pytz
 WORKDIR /usr/src/app
 COPY . ./
 RUN python fetchConfiguration.py
