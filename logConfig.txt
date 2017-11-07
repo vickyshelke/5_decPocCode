@@ -1,0 +1,4 @@
+[log-config]
+
+LOG_ENABLE = True
+BUFFER     = 10000
