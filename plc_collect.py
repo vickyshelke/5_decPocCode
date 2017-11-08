@@ -212,9 +212,9 @@ def plcMachine2(channel):
                                 logging.debug(finalmessage)
                                 fields={'ts':machine_cycle_timestamp,'loc':LOCATION,'mac':MACHINE2_NAME,'data':finalmessage}
                                 encoded_args = urllib.urlencode(fields)
-                                url = 'http://52.170.42.17:5555/get?' + encoded_args
+                                url = 'http://52.170.42.16:5555/get?' + encoded_args
                                 try:
-                                        r = http.request('GET', url,timeout=0.1)
+                                        r = http.request('GET', url,timeout=1.0)
                                         data_send_from_machine2_status=r.status
                                         #logging.debug('HTTP Send Status: ',r.status)
                                 except urllib3.exceptions.MaxRetryError as e:
