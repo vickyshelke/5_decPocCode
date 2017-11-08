@@ -21,6 +21,6 @@ RUN pip install urllib3
 RUN pip install pytz
 WORKDIR /usr/src/app
 COPY . ./
-RUN python fetchConfiguration.py
 
-CMD ["python", "plc_collect.py"]
+
+CMD ["bash", "startup.sh"]
