@@ -25,7 +25,7 @@ print config_data
 #"Facility": "IZM", "SignalType": "Quality"}] import itertools im
 
 machine_data=[]
-machine_name=['Machine1','Machine2','Machine3','machine4']
+#machine_name=['Machine1','Machine2','Machine3','machine4']
 
 for machine in config_data:
         machine_data.append(machine['Machine'])
@@ -44,11 +44,15 @@ with open("machineConfig.txt", "w+") as myfile:
         for x in range(int(len(machineCount))):
                 data="MACHINE"+str(x+1)+"_NAME         = "+machineCount[x]+"\n"
                 myfile.write(data)
+		goodbadPresent=0
                 for machine in config_data:
                         if machine['Machine']==machineCount[x]:
                                 if machine['SignalType']=='EndOfCycle':
                                         data= "MACHINE"+str(x+1)+"_CYCLE        = "+machine['PIN']+"\n"
                                         myfile.write(data)
                                 if machine['SignalType']=='Quality':
-                                        data= "MACHINE"+str(x+1)+"_Quality      = "+machine['PIN']+"\n"
+                                        data= machineCount[x]+"_Quality      = "+machine['PIN']+"\n"
                                         myfile.write(data)
+			if goodbadPresent==0:
+				data= machineCount[x]+"_Quality      = not connected\n"
+                		myfile.write(data)
