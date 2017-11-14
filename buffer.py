@@ -17,7 +17,7 @@ def pop():
             fd.writelines(rows[n:])
             return ''.join(rows[:n])
     else:
-        return "buffer empty"
+        return "-1"
 def trim_buffer(row):
     size = int(SIZE)
     with open(FILENAME, 'rU') as fd:
