@@ -19,35 +19,37 @@ from time import gmtime, strftime, sleep
 import datetime
 
 machineName =[]
-machineCycleSignal[]
-machineGoodbadPartSignal[]
+machineCycleSignal=[]
+machineGoodbadPartSignal=[]
 
 config = ConfigParser.ConfigParser()
 config.optionxform = str
-config.readfp(open(r'config.txt'))
+config.readfp(open(r'machineConfig.txt'))
 path_items = config.items( "machine-config" )
-
-for key, value in path_items:       
-	print key
-	print value
-	if 'Location'in key:
-		LOCATION = value
-	if 'TotalMachines' in key:
-		totalMachines=int(value) 
-	if 'MACHINE' in key:
+LOCATION=None
+for key, value in path_items:
+#       print key
+#       print value
+        if 'Facility'in key:
+                LOCATION = value
+        if 'TotalMachines' in key:
+                totalMachines=int(value)
+        if 'MACHINE' in key:
                 machineName.append(value)
-	if 'CYCLE' in key:
-		machineCycleSignal.append(int (value))
+        if 'CYCLE' in key:
+                machineCycleSignal.append(int (value))
         if '_Quality' in key:
-		
-			if key == machineName[-1]+"_Quality":
-				if value !="not connected":
-					machineGoodbadPartSignal.append(int(value))
-				else:
-					machineGoodbadPartSignal.append(0)
+                        print "in quality"
+                        if key == machineName[-1]+"_Quality":
+                                if value !="not connected":
+                                        machineGoodbadPartSignal.append(int(value))
+                                else:
+                                        machineGoodbadPartSignal.append(0)
 
-
-
+print machineGoodbadPartSignal
+#print machineName
+print machineCycleSignal
+print LOCATION
 log_config = ConfigParser.ConfigParser()
 log_config.readfp(open(r'logConfig.txt'))
 
@@ -81,14 +83,17 @@ GPIO.setmode(GPIO.BCM)
 #MACHINE_CYCLE2 = 24
 #GPIO.setup(MACHINE_CYCLE,GPIO.IN)
 #GPIO.setup(MACHINE_CYCLE2,GPIO.IN)
-for setupPinAsInput in (len(machineCycleSignal)):
-	GPIO.setup(machineCycleSignal[setupPinAsInput], GPIO.IN, pull_up_down=GPIO.PUD_UP)
+for setupPinAsInput in range(len(machineCycleSignal)):
+        print "setting pin as input ",machineCycleSignal[setupPinAsInput]
+        GPIO.setup(machineCycleSignal[setupPinAsInput], GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
-for setupPinAsInput in (len(machineGoodbadPartSignal)):
-	if machineGoodbadPartSignal[setupPinAsInput]!=0 :
-	GPIO.setup(machineGoodbadPartSignal[setupPinAsInput], GPIO.IN, pull_up_down=GPIO.PUD_UP)
+for setupPinAsInput in range(len(machineGoodbadPartSignal)):
 
-	
+        if machineGoodbadPartSignal[setupPinAsInput]!=0 :
+                print "setting pin as input ",machineGoodbadPartSignal[setupPinAsInput]
+                GPIO.setup(machineGoodbadPartSignal[setupPinAsInput], GPIO.IN, pull_up_down=GPIO.PUD_UP)
+
+
 #INITALIZE = 1
 ## PIN NUBERS   BCM  PHYCICAL
 #               27    13
@@ -133,6 +138,7 @@ def plcMachine1(channel):
         time.sleep(0.1)
         global machine1_cycle_risingEdge_detected
         global machine1_good_badpart_pinvalue
+        global LOCATION
         data_send_from_machine1_status=0
         machine1_cycle_pinvalue=0
         if (GPIO.input(machineCycleSignal[0])==0): # dry contact closed on machine cycle pin
@@ -161,7 +167,7 @@ def plcMachine1(channel):
                                         machine1_good_badpart_pinvalue=1
                                 else:
                                         machine1_good_badpart_pinvalue=0
-                                
+
 #                       m1.machine_cycle_cleartime()
                         #try:
                         #        lock.acquire()
@@ -183,7 +189,7 @@ def plcMachine1(channel):
                                         else:
                                                 data=1
 #                                               logging.debug("HTTP send status : %d",data_send_from_machine1_status)
-                                        buffer.push(machine_cycle_timestamp+" "+LOCATION+ " " + machineName +" "+finalmessage)
+                                        buffer.push(machine_cycle_timestamp+" "+LOCATION+ " " + machineName[0] +" "+finalmessage)
                                 else:
                                         logging.debug("HTTP send status : %d",data_send_from_machine1_status)
                         else:
@@ -196,6 +202,7 @@ def plcMachine2(channel):
         time.sleep(0.1)
         global machine2_cycle_risingEdge_detected
         global machine2_good_badpart_pinvalue
+        global LOCATION
         data_send_from_machine2_status=0
         machine2_cycle_pinvalue=0
         if (GPIO.input(machineCycleSignal[1])==0): # dry contact closed on machine cycle pin
@@ -203,7 +210,7 @@ def plcMachine2(channel):
                 logging.debug ("Rising edge : MACHINE2 CYCLE SIGNAL ")
                 m2.machine_cycle_starttime()
                 #logging.debug ("Rising edge : MACHINE2 CYCLE SIGNAL ")
-                if (GPIO.input(machineGoodbadpartSignal[1])==0): # check value of good_badpart_signal and set it to 1 if ok
+                if (GPIO.input(machineGoodbadPartSignal[1])==0): # check value of good_badpart_signal and set it to 1 if ok
                         machine2_good_badpart_pinvalue=1
                 else:   #good_badpart is not ok
                         machine2_good_badpart_pinvalue=0
@@ -230,7 +237,9 @@ def plcMachine2(channel):
                                 count=m2.partCount()
                                 finalmessage="Quality"+":"+str(machine2_good_badpart_pinvalue)
                                 logging.debug(finalmessage)
-                                fields={'ts':machine_cycle_timestamp,'loc':LOCATION,'mac':machineName[1],'data':finalmessage}
+                                print machineName[1]
+                                #fields={'ts':machine_cycle_timestamp,'loc':LOCATION,'mach':machineName[0],'data':finalmessage}
+                                fields={'ts':machine_cycle_timestamp,'loc':LOCATION,'mach':machineName[1],'data':finalmessage}
                                 encoded_args = urllib.urlencode(fields)
                                 url = 'http://52.170.42.16:5555/get?' + encoded_args
                                 try:
@@ -264,10 +273,11 @@ def get_mac():
 
 mac=str(get_mac())
 
-plcMachine = lambda TotalMachines: eval("plcMachine"+str(totalMachines))
-
-for addDetectionOnPin in totalMachines:
-	GPIO.add_event_detect(machhineCycleSignal[addDetectionOnPin], GPIO.BOTH, callback=plcMachine(addDetectionOnPin)(),bouncetime=200)
+plcMachine = lambda totalMachines: eval("plcMachine"+str(totalMachines))
+#print plcMachine(1)
+for addDetectionOnPin in range (totalMachines):
+        print "adding detection on pin ",machineCycleSignal[addDetectionOnPin]
+        GPIO.add_event_detect(machineCycleSignal[addDetectionOnPin], GPIO.BOTH, callback=plcMachine(addDetectionOnPin+1),bouncetime=200)
 #GPIO.add_event_detect(MACHINE2_CYCLE, GPIO.BOTH, callback=plcMachine2,bouncetime=200)
 
 m1 = Machine(0, 0, 0)
