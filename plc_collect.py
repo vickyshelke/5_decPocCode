@@ -1,4 +1,5 @@
 import RPi.GPIO as GPIO
+import socket
 import pytz
 import time
 from time import gmtime, strftime, sleep
@@ -6,6 +7,7 @@ import datetime
 import urllib3
 http = urllib3.PoolManager()
 import logging
+import urllib2
 import sys
 import ConfigParser
 import uuid
@@ -134,6 +136,38 @@ class Machine:
                 self.MachineCount+=1
                 return self.MachineCount
 
+
+
+def sendData(timestamp,machinename,data):
+        data_send_from_machine_status=0
+        fields={'ts':timestamp,'loc':LOCATION,'mach':machinename,'data':data}
+        encoded_args = urllib.urlencode(fields)
+        url = 'http://52.170.42.16:5555/get?' + encoded_args
+        try:
+                r = http.request('GET', url,timeout=1.0)
+                data_send_from_machine_status=r.status
+        except urllib3.exceptions.MaxRetryError as e:
+                data_send_from_machine_status=0
+        if data_send_from_machine_status==0 or data_send_from_machine_status != 200 :
+                if data_send_from_machine_status==0:
+                        logging.debug("not able to send data :Connection Error")
+                else:
+                        logging.debug("HTTP send status : %d",data_send_from_machine1_status)
+                buffer.push(timestamp+" "+LOCATION+ " " + machinename +" "+data)
+        else:
+                logging.debug("HTTP send status : %d",data_send_from_machine_status)
+
+
+def internet_on():
+        responseCode=0
+        try:
+                responseCode=urllib2.urlopen('http://52.170.42.16:5555').getcode()
+#               data=urllib2.urlopen(url = 'http://52.170.42.16:5555',  method='GET')
+                return responseCode
+        except:
+                responseCode=0
+                return responseCode
+
 def plcMachine1(channel):
         time.sleep(0.1)
         global machine1_cycle_risingEdge_detected
@@ -157,41 +191,15 @@ def plcMachine1(channel):
                         machine1_cycle_risingEdge_detected=0
                         #utc_datetime = datetime.datetime.utcnow()
                         machine_cycle_timestamp=datetime.datetime.now(tz=pytz.UTC).replace(microsecond=0).strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3]+"+00:00"
-                        #machine_cycle_timestamp=utc_datetime.strftime("%Y-%m-%d %H:%M:%S")
-                        #machine_cycle_timestamp  = strftime("%Y-%m-%d %H:%M:%S", gmtime())
-                        #logging.info(machine_cycle_timestamp)
-                        #logging.debug ("Falling edge: MACHINE1 CYCLE SIGNAL ")
                         machine1_cycle_pinvalue=m1.machine_cycle_pulseTime(1)
                         if machine1_cycle_pinvalue==1:                          #//if this is valid pulse
                                 if(GPIO.input(machineGoodbadPartSignal[0])==0):
                                         machine1_good_badpart_pinvalue=1
                                 else:
                                         machine1_good_badpart_pinvalue=0
-
-#                       m1.machine_cycle_cleartime()
-                        #try:
-                        #        lock.acquire()
                                 finalmessage="Quality"+":"+str(machine1_good_badpart_pinvalue)
                                 logging.debug(finalmessage)
-                                fields={'ts':machine_cycle_timestamp,'loc':LOCATION,'mach':machineName[0],'data':finalmessage}
-                                encoded_args = urllib.urlencode(fields)
-                                url = 'http://52.170.42.16:5555/get?' + encoded_args
-                                try:
-                                        r = http.request('GET', url,timeout=1.0)
-                                        data_send_from_machine1_status=r.status
-                                        #logging.debug('HTTP Send Status: ',r.status)
-                                except urllib3.exceptions.MaxRetryError as e:
-                                        data_send_from_machine1_status=0
-                                #print('connection error: ')
-                                if data_send_from_machine1_status==0 or data_send_from_machine1_status != 200 :
-                                        if data_send_from_machine1_status==0:
-                                                logging.debug("not able to send data :Connection Error")
-                                        else:
-                                                data=1
-#                                               logging.debug("HTTP send status : %d",data_send_from_machine1_status)
-                                        buffer.push(machine_cycle_timestamp+" "+LOCATION+ " " + machineName[0] +" "+finalmessage)
-                                else:
-                                        logging.debug("HTTP send status : %d",data_send_from_machine1_status)
+                                sendData(machine_cycle_timestamp,machineName[0],finalmessage)
                         else:
                                 logging.debug("Machine 1 cycle pulse width is invalid")
                 m1.machine_cycle_cleartime()
@@ -241,7 +249,7 @@ def plcMachine2(channel):
                                 #fields={'ts':machine_cycle_timestamp,'loc':LOCATION,'mach':machineName[0],'data':finalmessage}
                                 fields={'ts':machine_cycle_timestamp,'loc':LOCATION,'mach':machineName[1],'data':finalmessage}
                                 encoded_args = urllib.urlencode(fields)
-                                url = 'http://52.170.42.16:5555/get?' + encoded_args
+                                url = 'http://52.170.42.17:5555/get?' + encoded_args
                                 try:
                                         r = http.request('GET', url,timeout=1.0)
                                         data_send_from_machine2_status=r.status
@@ -255,7 +263,7 @@ def plcMachine2(channel):
                                         else:
                                                 data=1
                                         #       logging.debug("HTTP send status : %d",data_send_from_machine2_status)
-                                        buffer.push(machine_cycle_timestamp+" "+LOCATION+" "+machineName[1]+finalmessage)
+                                        buffer.push(machine_cycle_timestamp+" "+LOCATION+" "+machineName[1]+" "+finalmessage)
                                 else:
                                         logging.debug("HTTP send status : %d",data_send_from_machine2_status)
                         else:
@@ -286,7 +294,21 @@ m2 = Machine(0, 0, 0)
 logging.debug("data collection started")
 try:
         while True:
-                time.sleep(10)
+                if internet_on()==200:
+                        print "internet is ok"
+                        data=buffer.pop().rstrip()
+                        print data
+                        if data!="-1":
+                                while data!="-1":
+                                        dataTosend=data.split()
+                                        print dataTosend
+                                        print "poping element"
+                                        sendData(dataTosend[0],dataTosend[2],dataTosend[3])
+                                        time.sleep(3)
+                                        data=buffer.pop().rstrip()
+                        else:
+                                print "no local messages"
+                time.sleep(120)
                 logging.debug("--")
 except KeyboardInterrupt:
         logging.debug("Quit")
