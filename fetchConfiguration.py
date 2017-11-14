@@ -1,5 +1,4 @@
-
-      import urllib3
+import urllib3
 http = urllib3.PoolManager()
 # from urllib.parse import urlencode
 import urllib
