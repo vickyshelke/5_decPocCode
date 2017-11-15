@@ -159,14 +159,16 @@ def sendData(timestamp,machinename,data):
 
 
 def internet_on():
-        responseCode=0
+        host ='52.170.42.16'
+        port = 5555
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
-                responseCode=urllib2.urlopen('http://52.170.42.16:5555').getcode()
-#               data=urllib2.urlopen(url = 'http://52.170.42.16:5555',  method='GET')
-                return responseCode
+                s.connect((host, int(port)))
+                s.shutdown(2)
+                return True
         except:
-                responseCode=0
-                return responseCode
+                return False
+
 
 def plcMachine1(channel):
         time.sleep(0.1)
@@ -294,11 +296,12 @@ m2 = Machine(0, 0, 0)
 logging.debug("data collection started")
 try:
         while True:
-                if internet_on()==200:
+                if internet_on()==True:
                         print "internet is ok"
                         data=buffer.pop().rstrip()
                         print data
                         if data!="-1":
+                                print "in if"
                                 while data!="-1":
                                         dataTosend=data.split()
                                         print dataTosend
@@ -308,7 +311,7 @@ try:
                                         data=buffer.pop().rstrip()
                         else:
                                 print "no local messages"
-                time.sleep(120)
+                time.sleep(20)
                 logging.debug("--")
 except KeyboardInterrupt:
         logging.debug("Quit")
