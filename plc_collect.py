@@ -41,7 +41,7 @@ for key, value in path_items:
         if 'CYCLE' in key:
                 machineCycleSignal.append(int (value))
         if '_Quality' in key:
-                        print "in quality"
+#                        print "in quality"
                         if key == machineName[-1]+"_Quality":
                                 if value !="not connected":
                                         machineGoodbadPartSignal.append(int(value))
@@ -56,8 +56,6 @@ log_config = ConfigParser.ConfigParser()
 log_config.readfp(open(r'logConfig.txt'))
 
 LOG= log_config.get('log-config', 'LOG_ENABLE')
-#if MACHINE1_GOOD_BAD=="NOT CONNECTED":
-
 #lock=threading.Lock()
 root = logging.getLogger()
 root.setLevel(logging.DEBUG)
@@ -80,11 +78,7 @@ machine2_cycle_risingEdge_detected=0
 
 GPIO.setwarnings(False)
 GPIO.setmode(GPIO.BCM)
-#GPIO.setmode(GPIO.BOARD)
-#MACHINE_CYCLE  = 23
-#MACHINE_CYCLE2 = 24
-#GPIO.setup(MACHINE_CYCLE,GPIO.IN)
-#GPIO.setup(MACHINE_CYCLE2,GPIO.IN)
+
 for setupPinAsInput in range(len(machineCycleSignal)):
         print "setting pin as input ",machineCycleSignal[setupPinAsInput]
         GPIO.setup(machineCycleSignal[setupPinAsInput], GPIO.IN, pull_up_down=GPIO.PUD_UP)
@@ -117,10 +111,10 @@ class Machine:
         def machine_cycle_starttime(self):
 
                 self.machine_cycle_rising_edge=time.time()
-                logging.debug(self.machine_cycle_rising_edge)
+ #               logging.debug(self.machine_cycle_rising_edge)
         def machine_cycle_stoptime(self):
                 self.machine_cycle_falling_edge=time.time()
-                logging.debug(self.machine_cycle_falling_edge)
+#                logging.debug(self.machine_cycle_falling_edge)
         def machine_cycle_cleartime(self):
                 self.machine_cycle_rising_edge=0
                 self.machine_cycle_falling_edge=0
@@ -132,11 +126,6 @@ class Machine:
                         return 1
                 else:
                         return 0
-        def partCount(self):
-                self.MachineCount+=1
-                return self.MachineCount
-
-
 
 def sendData(timestamp,machinename,data):
         data_send_from_machine_status=0
@@ -144,7 +133,7 @@ def sendData(timestamp,machinename,data):
         encoded_args = urllib.urlencode(fields)
         url = 'http://52.170.42.16:5555/get?' + encoded_args
         try:
-                r = http.request('GET', url,timeout=1.0)
+                r = http.request('GET', url,timeout=2.0)
                 data_send_from_machine_status=r.status
         except urllib3.exceptions.MaxRetryError as e:
                 data_send_from_machine_status=0
@@ -164,11 +153,10 @@ def internet_on():
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
                 s.connect((host, int(port)))
-                s.shutdown(2)
+                #s.shutdown(2)
                 return True
         except:
                 return False
-
 
 def plcMachine1(channel):
         time.sleep(0.1)
@@ -180,7 +168,7 @@ def plcMachine1(channel):
         if (GPIO.input(machineCycleSignal[0])==0): # dry contact closed on machine cycle pin
                 machine1_cycle_risingEdge_detected = 1
                 #m1.machine_cycle_starttime()
-                logging.debug ("Rising edge : MACHINE1 CYCLE SIGNAL ")
+                logging.debug ("Rising edge :%s cycleSsignal ",machineName[0])
                 m1.machine_cycle_starttime()
                 if (GPIO.input(machineGoodbadPartSignal[0])==0): # check value of good_badpart_signal and set it to 1 if ok
                         machine1_good_badpart_pinvalue=1
@@ -188,7 +176,7 @@ def plcMachine1(channel):
                         machine1_good_badpart_pinvalue=0
         else: # dry contact opend falling edge detected for machine_cycle pin
                 if machine1_cycle_risingEdge_detected == 1:
-                        logging.debug ("Falling edge: MACHINE1 CYCLE SIGNAL ")
+                        logging.debug ("Falling edge: %s cycle Signal ",machineName[0])
                         m1.machine_cycle_stoptime()
                         machine1_cycle_risingEdge_detected=0
                         #utc_datetime = datetime.datetime.utcnow()
@@ -203,7 +191,7 @@ def plcMachine1(channel):
                                 logging.debug(finalmessage)
                                 sendData(machine_cycle_timestamp,machineName[0],finalmessage)
                         else:
-                                logging.debug("Machine 1 cycle pulse width is invalid")
+                                logging.debug("%s cycle pulse width is invalid",machineName[0])
                 m1.machine_cycle_cleartime()
                         #machine_cycle_risingEdge_detected = 0
 
@@ -217,7 +205,7 @@ def plcMachine2(channel):
         machine2_cycle_pinvalue=0
         if (GPIO.input(machineCycleSignal[1])==0): # dry contact closed on machine cycle pin
                 machine2_cycle_risingEdge_detected = 1
-                logging.debug ("Rising edge : MACHINE2 CYCLE SIGNAL ")
+                logging.debug ("Rising edge :%s machine Cycle ",machineName[1])
                 m2.machine_cycle_starttime()
                 #logging.debug ("Rising edge : MACHINE2 CYCLE SIGNAL ")
                 if (GPIO.input(machineGoodbadPartSignal[1])==0): # check value of good_badpart_signal and set it to 1 if ok
@@ -226,7 +214,7 @@ def plcMachine2(channel):
                         machine2_good_badpart_pinvalue=0
         else: # dry contact opend falling edge detected for machine_cycle pin
                 if machine2_cycle_risingEdge_detected == 1:
-                        logging.debug ("Falling edge: MACHINE2 CYCLE SIGNAL ")
+                        logging.debug ("Falling edge: %s cycle signal ",machineName[1])
                         m2.machine_cycle_stoptime()
                         machine2_cycle_risingEdge_detected=0
                         #utc_datetime = datetime.datetime.utcnow()
@@ -241,35 +229,13 @@ def plcMachine2(channel):
                                         machine2_good_badpart_pinvalue=1
                                 else:
                                         machine1_good_badpart_pinvalue=0
-
                                 #try:
                                 #        lock.acquire()
-                                count=m2.partCount()
                                 finalmessage="Quality"+":"+str(machine2_good_badpart_pinvalue)
                                 logging.debug(finalmessage)
-                                print machineName[1]
-                                #fields={'ts':machine_cycle_timestamp,'loc':LOCATION,'mach':machineName[0],'data':finalmessage}
-                                fields={'ts':machine_cycle_timestamp,'loc':LOCATION,'mach':machineName[1],'data':finalmessage}
-                                encoded_args = urllib.urlencode(fields)
-                                url = 'http://52.170.42.17:5555/get?' + encoded_args
-                                try:
-                                        r = http.request('GET', url,timeout=1.0)
-                                        data_send_from_machine2_status=r.status
-                                        #logging.debug('HTTP Send Status: ',r.status)
-                                except urllib3.exceptions.MaxRetryError as e:
-                                        data_send_from_machine2_status=0
-                                        #print('connection error: ')
-                                if data_send_from_machine2_status==0 or data_send_from_machine2_status != 200 :
-                                        if data_send_from_machine2_status==0:
-                                                logging.debug("Not able to send data :Connection Error")
-                                        else:
-                                                data=1
-                                        #       logging.debug("HTTP send status : %d",data_send_from_machine2_status)
-                                        buffer.push(machine_cycle_timestamp+" "+LOCATION+" "+machineName[1]+" "+finalmessage)
-                                else:
-                                        logging.debug("HTTP send status : %d",data_send_from_machine2_status)
+                                sendData(machine_cycle_timestamp,machineName[1],finalmessage)
                         else:
-                                logging.debug("Machine2 cycle pulse width is invalid")
+                                logging.debug("%s cycle pulse width is invalid",machineName[1])
                 m2.machine_cycle_cleartime()
 
 
@@ -299,9 +265,8 @@ try:
                 if internet_on()==True:
                         print "internet is ok"
                         data=buffer.pop().rstrip()
-                        print data
+#                        print data
                         if data!="-1":
-                                print "in if"
                                 while data!="-1":
                                         dataTosend=data.split()
                                         print dataTosend
@@ -311,7 +276,7 @@ try:
                                         data=buffer.pop().rstrip()
                         else:
                                 print "no local messages"
-                time.sleep(20)
+                time.sleep(60)
                 logging.debug("--")
 except KeyboardInterrupt:
         logging.debug("Quit")
