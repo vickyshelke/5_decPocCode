@@ -1,19 +1,3 @@
-DEBUG [11, 13]
-DEBUG [10, 12]
-DEBUG IZM
-DEBUG setting pin 10 as input
-DEBUG setting pin 12 as input
-DEBUG setting pin 11 as input
-DEBUG setting pin 13 as input
-DEBUG added detection on pin no : 10
-DEBUG added detection on pin no : 12
-DEBUG data collection started
-DEBUG Connection status to nifi:CONNECTED
-DEBUG No local messages
-^Z
-[1]+  Stopped                 python plc_collect.py
-root@6deff43:/usr/src/app# nano plc_collect.py
-root@6deff43:/usr/src/app# cat plc_collect.py
 import RPi.GPIO as GPIO
 import socket
 import pytz
