@@ -63,7 +63,7 @@ log_message =logging.StreamHandler(sys.stdout)
 log_message.setLevel(logging.DEBUG)
 #use %(lineno)d for printnig line  no
 #formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s',"%Y-%m-%d %H:%M:%S")
-formatter = logging.Formatter('%(levelname)s %(message)s')
+formatter = logging.Formatter('%(levelname)s : %(message)s')
 log_message.setFormatter(formatter)
 root.addHandler(log_message)
 
@@ -139,7 +139,7 @@ def sendData(timestamp,machinename,data):
                 data_send_from_machine_status=0
         if data_send_from_machine_status==0 or data_send_from_machine_status != 200 :
                 if data_send_from_machine_status==0:
-                        logging.error("not able to send data :Connection Error")
+                        logging.error(" Not able to send data : Connection Error")
                 else:
                         logging.debug("HTTP send status : %d",data_send_from_machine1_status)
                 buffer.push(timestamp+" "+LOCATION+ " " + machinename +" "+data)
@@ -176,7 +176,7 @@ def plcMachine1(channel):
                         machine1_good_badpart_pinvalue=0
         else: # dry contact opend falling edge detected for machine_cycle pin
                 if machine1_cycle_risingEdge_detected == 1:
-                        logging.debug ("Falling edge: %s Cycle Signal ",machineName[0])
+                        logging.debug ("Falling edge : %s Cycle Signal ",machineName[0])
                         m1.machine_cycle_stoptime()
                         machine1_cycle_risingEdge_detected=0
                         #utc_datetime = datetime.datetime.utcnow()
@@ -191,7 +191,7 @@ def plcMachine1(channel):
                                 logging.debug(finalmessage)
                                 sendData(machine_cycle_timestamp,machineName[0],finalmessage)
                         else:
-                                logging.debug("%s cycle pulse width is invalid",machineName[0])
+                                logging.debug(" %s cycle pulse width is invalid",machineName[0])
                 m1.machine_cycle_cleartime()
                         #machine_cycle_risingEdge_detected = 0
 
@@ -205,7 +205,7 @@ def plcMachine2(channel):
         machine2_cycle_pinvalue=0
         if (GPIO.input(machineCycleSignal[1])==0): # dry contact closed on machine cycle pin
                 machine2_cycle_risingEdge_detected = 1
-                logging.debug ("Rising edge :%s Cycle Signal",machineName[1])
+                logging.debug ("Rising edge : %s Cycle Signal ",machineName[1])
                 m2.machine_cycle_starttime()
                 if (GPIO.input(machineGoodbadPartSignal[1])==0): # check value of good_badpart_signal and set it to 1 if ok
                         machine2_good_badpart_pinvalue=1
@@ -213,7 +213,7 @@ def plcMachine2(channel):
                         machine2_good_badpart_pinvalue=0
         else: # dry contact opend falling edge detected for machine_cycle pin
                 if machine2_cycle_risingEdge_detected == 1:
-                        logging.debug ("Falling edge: %s Cycle Signal ",machineName[1])
+                        logging.debug ("Falling edge : %s Cycle Signal ",machineName[1])
                         m2.machine_cycle_stoptime()
                         machine2_cycle_risingEdge_detected=0
                         #utc_datetime = datetime.datetime.utcnow()
@@ -230,7 +230,7 @@ def plcMachine2(channel):
                                 logging.debug(finalmessage)
                                 sendData(machine_cycle_timestamp,machineName[1],finalmessage)
                         else:
-                                logging.debug("%s cycle pulse width is invalid",machineName[1])
+                                logging.debug(" %s cycle pulse width is invalid",machineName[1])
                 m2.machine_cycle_cleartime()
 
 
@@ -258,7 +258,7 @@ logging.debug("data collection started")
 try:
         while True:
                 if internet_on()==True:
-                        logging.debug( "Connection status to nifi:CONNECTED")
+                        logging.debug( " Connection status to nifi : CONNECTED ")
                         data=buffer.pop().rstrip()
                         if data!="-1":
                                 while data!="-1":
@@ -269,11 +269,11 @@ try:
                                         time.sleep(3)
                                         data=buffer.pop().rstrip()
                         else:
-                                logging.debug( "No local messages")
+                                logging.debug( " No local messages")
                 else:
-                        logging.error("Connection status to nifi:NO NETWORK")
+                        logging.error(" Connection status to nifi : NO NETWORK ")
                 time.sleep(60)
         #logging.debug("--")
 except KeyboardInterrupt:
-        logging.debug("Quit")
+        logging.debug(" Quit ")
         GPIO.cleanup()
