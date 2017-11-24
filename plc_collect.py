@@ -30,8 +30,6 @@ config.readfp(open(r'machineConfig.txt'))
 path_items = config.items( "machine-config" )
 LOCATION=None
 for key, value in path_items:
-#       print key
-#       print value
         if 'Facility'in key:
                 LOCATION = value
         if 'TotalMachines' in key:
@@ -41,7 +39,6 @@ for key, value in path_items:
         if 'CYCLE' in key:
                 machineCycleSignal.append(int (value))
         if '_Quality' in key:
-#                        print "in quality"
                         if key == machineName[-1]+"_Quality":
                                 if value !="not connected":
                                         machineGoodbadPartSignal.append(int(value))
@@ -49,13 +46,14 @@ for key, value in path_items:
                                         machineGoodbadPartSignal.append(0)
 
 print machineGoodbadPartSignal
-#print machineName
 print machineCycleSignal
 print LOCATION
 log_config = ConfigParser.ConfigParser()
 log_config.readfp(open(r'logConfig.txt'))
 
 LOG= log_config.get('log-config', 'LOG_ENABLE')
+HOST=log_config.get('log-config', 'REMOTE_HOST')
+PORT=log_config.get('log-config', 'REMOTE_PORT')
 #lock=threading.Lock()
 root = logging.getLogger()
 root.setLevel(logging.DEBUG)
@@ -66,7 +64,8 @@ else :
 log_message =logging.StreamHandler(sys.stdout)
 log_message.setLevel(logging.DEBUG)
 #use %(lineno)d for printnig line  no
-formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s',"%Y-%m-%d %H:%M:%S")
+#formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s',"%Y-%m-%d %H:%M:%S")
+formatter = logging.Formatter('%(levelname)s %(message)s')
 log_message.setFormatter(formatter)
 root.addHandler(log_message)
 
@@ -118,10 +117,10 @@ class Machine:
         def machine_cycle_cleartime(self):
                 self.machine_cycle_rising_edge=0
                 self.machine_cycle_falling_edge=0
-        def machine_cycle_pulseTime(self,machineno):
-                self.machineno=machineno
+        def machine_cycle_pulseTime(self,machinename):
+                self.machinename=machinename
                 self.machine_cycle_pulse_time=self.machine_cycle_falling_edge-self.machine_cycle_rising_edge
-                logging.debug ("Total Duration of MACHINE CYCLE SIGNAL%s is :%s ",str(machineno),str(self.machine_cycle_pulse_time))
+                logging.debug ("Total Duration of MACHINE CYCLE SIGNAL for %s :%s ",machinename,str(self.machine_cycle_pulse_time))
                 if self.machine_cycle_pulse_time >=2 and self.machine_cycle_pulse_time <= 4 :
                         return 1
                 else:
@@ -131,7 +130,7 @@ def sendData(timestamp,machinename,data):
         data_send_from_machine_status=0
         fields={'ts':timestamp,'loc':LOCATION,'mach':machinename,'data':data}
         encoded_args = urllib.urlencode(fields)
-        url = 'http://52.170.42.16:5555/get?' + encoded_args
+        url = 'http://' + HOST + ':' + PORT + '/get?' + encoded_args
         try:
                 r = http.request('GET', url,timeout=2.0)
                 data_send_from_machine_status=r.status
@@ -148,12 +147,12 @@ def sendData(timestamp,machinename,data):
 
 
 def internet_on():
-        host ='52.170.42.16'
-        port = 5555
+        #host ='52.170.42.16'
+        #port = 5555
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
-                s.connect((host, int(port)))
-                #s.shutdown(2)
+                s.connect((HOST, int(PORT)))
+                s.close()
                 return True
         except:
                 return False
@@ -168,7 +167,7 @@ def plcMachine1(channel):
         if (GPIO.input(machineCycleSignal[0])==0): # dry contact closed on machine cycle pin
                 machine1_cycle_risingEdge_detected = 1
                 #m1.machine_cycle_starttime()
-                logging.debug ("Rising edge :%s cycleSsignal ",machineName[0])
+                logging.debug ("Rising edge :%s Cycle Signal ",machineName[0])
                 m1.machine_cycle_starttime()
                 if (GPIO.input(machineGoodbadPartSignal[0])==0): # check value of good_badpart_signal and set it to 1 if ok
                         machine1_good_badpart_pinvalue=1
@@ -176,12 +175,12 @@ def plcMachine1(channel):
                         machine1_good_badpart_pinvalue=0
         else: # dry contact opend falling edge detected for machine_cycle pin
                 if machine1_cycle_risingEdge_detected == 1:
-                        logging.debug ("Falling edge: %s cycle Signal ",machineName[0])
+                        logging.debug ("Falling edge: %s Cycle Signal ",machineName[0])
                         m1.machine_cycle_stoptime()
                         machine1_cycle_risingEdge_detected=0
                         #utc_datetime = datetime.datetime.utcnow()
                         machine_cycle_timestamp=datetime.datetime.now(tz=pytz.UTC).replace(microsecond=0).strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3]+"+00:00"
-                        machine1_cycle_pinvalue=m1.machine_cycle_pulseTime(1)
+                        machine1_cycle_pinvalue=m1.machine_cycle_pulseTime(machineName[0])
                         if machine1_cycle_pinvalue==1:                          #//if this is valid pulse
                                 if(GPIO.input(machineGoodbadPartSignal[0])==0):
                                         machine1_good_badpart_pinvalue=1
@@ -205,25 +204,20 @@ def plcMachine2(channel):
         machine2_cycle_pinvalue=0
         if (GPIO.input(machineCycleSignal[1])==0): # dry contact closed on machine cycle pin
                 machine2_cycle_risingEdge_detected = 1
-                logging.debug ("Rising edge :%s machine Cycle ",machineName[1])
+                logging.debug ("Rising edge :%s Cycle Signal",machineName[1])
                 m2.machine_cycle_starttime()
-                #logging.debug ("Rising edge : MACHINE2 CYCLE SIGNAL ")
                 if (GPIO.input(machineGoodbadPartSignal[1])==0): # check value of good_badpart_signal and set it to 1 if ok
                         machine2_good_badpart_pinvalue=1
                 else:   #good_badpart is not ok
                         machine2_good_badpart_pinvalue=0
         else: # dry contact opend falling edge detected for machine_cycle pin
                 if machine2_cycle_risingEdge_detected == 1:
-                        logging.debug ("Falling edge: %s cycle signal ",machineName[1])
+                        logging.debug ("Falling edge: %s Cycle Signal ",machineName[1])
                         m2.machine_cycle_stoptime()
                         machine2_cycle_risingEdge_detected=0
                         #utc_datetime = datetime.datetime.utcnow()
                         machine_cycle_timestamp=datetime.datetime.now(tz=pytz.UTC).replace(microsecond=0).strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3]+"+00:00"
-                        #machine_cycle_timestamp=utc_datetime.strftime("%Y-%m-%d %H:%M:%S")
-                        #machine_cycle_timestamp  = strftime("%Y-%m-%d %H:%M:%S", gmtime())
-                        #logging.info(machine_cycle_timestamp)
-                 #       logging.debug ("Falling edge: MACHINE2 CYCLE SIGNAL ")
-                        machine2_cycle_pinvalue=m2.machine_cycle_pulseTime(2)
+                        machine2_cycle_pinvalue=m2.machine_cycle_pulseTime(machineName[1])
                         if machine2_cycle_pinvalue==1:
                                 if(GPIO.input(machineGoodbadPartSignal[1])==0): # valid pulse
                                         machine2_good_badpart_pinvalue=1
