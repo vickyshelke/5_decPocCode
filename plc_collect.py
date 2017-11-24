@@ -1,3 +1,19 @@
+DEBUG [11, 13]
+DEBUG [10, 12]
+DEBUG IZM
+DEBUG setting pin 10 as input
+DEBUG setting pin 12 as input
+DEBUG setting pin 11 as input
+DEBUG setting pin 13 as input
+DEBUG added detection on pin no : 10
+DEBUG added detection on pin no : 12
+DEBUG data collection started
+DEBUG Connection status to nifi:CONNECTED
+DEBUG No local messages
+^Z
+[1]+  Stopped                 python plc_collect.py
+root@6deff43:/usr/src/app# nano plc_collect.py
+root@6deff43:/usr/src/app# cat plc_collect.py
 import RPi.GPIO as GPIO
 import socket
 import pytz
@@ -45,9 +61,7 @@ for key, value in path_items:
                                 else:
                                         machineGoodbadPartSignal.append(0)
 
-print machineGoodbadPartSignal
-print machineCycleSignal
-print LOCATION
+
 log_config = ConfigParser.ConfigParser()
 log_config.readfp(open(r'logConfig.txt'))
 
@@ -69,6 +83,9 @@ formatter = logging.Formatter('%(levelname)s %(message)s')
 log_message.setFormatter(formatter)
 root.addHandler(log_message)
 
+logging.debug(machineGoodbadPartSignal)
+logging.debug(machineCycleSignal)
+logging.debug(LOCATION)
 
 machine1_good_badpart_pinvalue=0
 machine1_cycle_risingEdge_detected=0
@@ -79,13 +96,13 @@ GPIO.setwarnings(False)
 GPIO.setmode(GPIO.BCM)
 
 for setupPinAsInput in range(len(machineCycleSignal)):
-        print "setting pin as input ",machineCycleSignal[setupPinAsInput]
+        logging.debug( "setting pin %d as input ",machineCycleSignal[setupPinAsInput])
         GPIO.setup(machineCycleSignal[setupPinAsInput], GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
 for setupPinAsInput in range(len(machineGoodbadPartSignal)):
 
         if machineGoodbadPartSignal[setupPinAsInput]!=0 :
-                print "setting pin as input ",machineGoodbadPartSignal[setupPinAsInput]
+                logging.debug( "setting pin %d as input ",machineGoodbadPartSignal[setupPinAsInput])
                 GPIO.setup(machineGoodbadPartSignal[setupPinAsInput], GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
 
@@ -138,7 +155,7 @@ def sendData(timestamp,machinename,data):
                 data_send_from_machine_status=0
         if data_send_from_machine_status==0 or data_send_from_machine_status != 200 :
                 if data_send_from_machine_status==0:
-                        logging.debug("not able to send data :Connection Error")
+                        logging.error("not able to send data :Connection Error")
                 else:
                         logging.debug("HTTP send status : %d",data_send_from_machine1_status)
                 buffer.push(timestamp+" "+LOCATION+ " " + machinename +" "+data)
@@ -167,7 +184,7 @@ def plcMachine1(channel):
         if (GPIO.input(machineCycleSignal[0])==0): # dry contact closed on machine cycle pin
                 machine1_cycle_risingEdge_detected = 1
                 #m1.machine_cycle_starttime()
-                logging.debug ("Rising edge :%s Cycle Signal ",machineName[0])
+                logging.debug ("Rising edge : %s Cycle Signal ",machineName[0])
                 m1.machine_cycle_starttime()
                 if (GPIO.input(machineGoodbadPartSignal[0])==0): # check value of good_badpart_signal and set it to 1 if ok
                         machine1_good_badpart_pinvalue=1
@@ -246,7 +263,7 @@ mac=str(get_mac())
 plcMachine = lambda totalMachines: eval("plcMachine"+str(totalMachines))
 #print plcMachine(1)
 for addDetectionOnPin in range (totalMachines):
-        print "adding detection on pin ",machineCycleSignal[addDetectionOnPin]
+        logging.debug( "added detection on pin no : %d",machineCycleSignal[addDetectionOnPin])
         GPIO.add_event_detect(machineCycleSignal[addDetectionOnPin], GPIO.BOTH, callback=plcMachine(addDetectionOnPin+1),bouncetime=200)
 #GPIO.add_event_detect(MACHINE2_CYCLE, GPIO.BOTH, callback=plcMachine2,bouncetime=200)
 
@@ -257,21 +274,22 @@ logging.debug("data collection started")
 try:
         while True:
                 if internet_on()==True:
-                        print "internet is ok"
+                        logging.debug( "Connection status to nifi:CONNECTED")
                         data=buffer.pop().rstrip()
-#                        print data
                         if data!="-1":
                                 while data!="-1":
                                         dataTosend=data.split()
-                                        print dataTosend
-                                        print "poping element"
+                                        logging.debug(dataTosend)
+                                        #print "poping element"
                                         sendData(dataTosend[0],dataTosend[2],dataTosend[3])
                                         time.sleep(3)
                                         data=buffer.pop().rstrip()
                         else:
-                                print "no local messages"
+                                logging.debug( "No local messages")
+                else:
+                        logging.error("Connection status to nifi:NO NETWORK")
                 time.sleep(60)
-                logging.debug("--")
+        #logging.debug("--")
 except KeyboardInterrupt:
         logging.debug("Quit")
         GPIO.cleanup()
