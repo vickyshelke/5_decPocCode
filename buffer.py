@@ -1,11 +1,17 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-#       fifo(.py)
+#       buffer.py
 #
 import os
+import ConfigParser
+logConfig = ConfigParser.ConfigParser()
+logConfig.readfp(open(r'logConfig.txt'))
+BUFFER_SIZE = logConfig.get('log-config', 'BUFFER_SIZE')
 FILENAME="BUFFER"
-SIZE=5
+if BUFFER_SIZE > 10000:
+        print "size of buffer excedded setting it to default"
+        BUFFER_SIZE = 10000
 def string_conditioned(string):
     return string.decode('string_escape').rstrip() + '\n'
 def pop():
@@ -19,7 +25,7 @@ def pop():
     else:
         return "-1"
 def trim_buffer(row):
-    size = int(SIZE)
+    size = int(BUFFER_SIZE)
     with open(FILENAME, 'rU') as fd:
         rows = fd.readlines()
     num_rows = len(rows)
