@@ -2,6 +2,7 @@ from random import randint
 #print(randint(1, 3))
 import time
 import RPi.GPIO as GPIO
+GPIO.setwarnings(False)
 MACHINE1_CYCLE = 17
 MACHINE2_CYCLE = 6
 MACHINE1_GOODBAD = 22
@@ -15,10 +16,10 @@ while True:
         i=randint(1,3)
         good1=randint(0,1)
         good2=randint(0,1)
-        print "goodbad for mchine 1 :",good1
-        print "goodbad for mchine 2 :",good2
+        #print "goodbad for mchine 1 :",good1
+        #print "goodbad for mchine 2 :",good2
         if i==1:
-                print "genrating test 1 pulse"
+         #       print "genrating test 1 pulse"
                 GPIO.output(MACHINE1_GOODBAD,good1)
                 GPIO.output(MACHINE2_GOODBAD,good2)
                 GPIO.output(MACHINE1_CYCLE,GPIO.LOW)
@@ -30,7 +31,7 @@ while True:
                 GPIO.output(MACHINE1_GOODBAD,GPIO.HIGH)# Turn off good bad for machine 1
                 GPIO.output(MACHINE2_GOODBAD,GPIO.HIGH)# Turn off good bad for machine 2
         if i==2:
-                print "genrating test 2 pulse"
+          #      print "genrating test 2 pulse"
                 GPIO.output(MACHINE1_GOODBAD,good1) # Turn on either 0/1 good bad for machine 1
                 GPIO.output(MACHINE2_GOODBAD,good2) # Turn on either 0/1 good bad for machine 2
                 GPIO.output(MACHINE1_CYCLE,GPIO.LOW)
@@ -44,7 +45,7 @@ while True:
                 time.sleep(1)
                 GPIO.output(MACHINE2_GOODBAD,GPIO.HIGH) # Turn off good bad for machine 2
         if i==3 :
-                print "genrating test 3 pulse"
+           #     print "genrating test 3 pulse"
                 GPIO.output(MACHINE1_GOODBAD,good1) #Turn on either 0/1 good bad for machine 1
                 time.sleep(1)
                 GPIO.output(MACHINE1_CYCLE,GPIO.LOW)
@@ -60,5 +61,5 @@ while True:
                 time.sleep(1)
                 GPIO.output(MACHINE2_GOODBAD,GPIO.HIGH)
         time.sleep(1)
-        print "waiting a minute before starting new iteration"
+        #print "waiting a minute before starting new iteration"
         time.sleep(60)
