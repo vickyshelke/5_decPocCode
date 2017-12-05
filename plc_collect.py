@@ -267,8 +267,19 @@ m2 = Machine(0, 0, 0)
 
 def machineData(q):
         logging.debug("machine thread started")
+        messagesSinceLastReboot=0
+        fd = open("testfile.txt", "r+")
+        totalMessage=int(fd.read())
+        fd.close()
         while True:
                 data=q.get()
+                messagesSinceLastReboot= messagesSinceLastReboot+1
+                totalMessage=totalMessage+1
+                logging.info("Message Receivd since lasr Reboot :%d",messagesSinceLastReboot)
+
+                fd = open("testfile.txt", "w+")
+                fd.write(str(totalMessage))
+                fd.close()
                 dataToSend=data.split()
                 logging.debug("need to send this data")
                 logging.debug(dataToSend)
