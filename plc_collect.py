@@ -19,11 +19,11 @@ import threading
 import buffer
 from time import gmtime, strftime, sleep
 import datetime
-
+import Queue
 machineName =[]
 machineCycleSignal=[]
 machineGoodbadPartSignal=[]
-
+q=Queue.Queue(maxsize=10)
 config = ConfigParser.ConfigParser()
 config.optionxform = str
 config.readfp(open(r'machineConfig.txt'))
@@ -62,8 +62,8 @@ else :
 log_message =logging.StreamHandler(sys.stdout)
 log_message.setLevel(logging.DEBUG)
 #use %(lineno)d for printnig line  no
-#formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s',"%Y-%m-%d %H:%M:%S")
-formatter = logging.Formatter('%(levelname)s : %(message)s')
+formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s',"%Y-%m-%d %H:%M:%S")
+#formatter = logging.Formatter('%(levelname)s : %(message)s')
 log_message.setFormatter(formatter)
 root.addHandler(log_message)
 
@@ -151,15 +151,16 @@ def internet_on():
         #host ='52.170.42.16'
         #port = 5555
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.settimeout(2)
         try:
                 s.connect((HOST, int(PORT)))
                 s.close()
                 return True
         except:
                 return False
-
 def plcMachine1(channel):
         time.sleep(0.1)
+        global q
         global machine1_cycle_risingEdge_detected
         global machine1_good_badpart_pinvalue
         global LOCATION
@@ -189,7 +190,11 @@ def plcMachine1(channel):
                                         machine1_good_badpart_pinvalue=0
                                 finalmessage="Quality"+":"+str(machine1_good_badpart_pinvalue)
                                 logging.debug(finalmessage)
-                                sendData(machine_cycle_timestamp,machineName[0],finalmessage)
+                        #        sendData(machine_cycle_timestamp,machineName[0],finalmessage)
+                                send_message=machine_cycle_timestamp+" "+machineName[0]+" "+finalmessage
+                                q.put(send_message)
+                                q.task_done()
+#                               print q.qsize()
                         else:
                                 logging.debug(" %s cycle pulse width is invalid",machineName[0])
                 m1.machine_cycle_cleartime()
@@ -197,6 +202,7 @@ def plcMachine1(channel):
 
 
 def plcMachine2(channel):
+        global q
         time.sleep(0.1)
         global machine2_cycle_risingEdge_detected
         global machine2_good_badpart_pinvalue
@@ -228,7 +234,12 @@ def plcMachine2(channel):
                                 #        lock.acquire()
                                 finalmessage="Quality"+":"+str(machine2_good_badpart_pinvalue)
                                 logging.debug(finalmessage)
-                                sendData(machine_cycle_timestamp,machineName[1],finalmessage)
+                                send_message=machine_cycle_timestamp+" "+machineName[1]+" "+finalmessage
+                                q.put(send_message)
+                                q.task_done()
+#                               print q.qsize()
+#                               print q.get()
+                                #sendData(machine_cycle_timestamp,machineName[1],finalmessage)
                         else:
                                 logging.debug(" %s cycle pulse width is invalid",machineName[1])
                 m2.machine_cycle_cleartime()
@@ -253,6 +264,20 @@ for addDetectionOnPin in range (totalMachines):
 
 m1 = Machine(0, 0, 0)
 m2 = Machine(0, 0, 0)
+
+def machineData(q):
+        logging.debug("machine thread started")
+        while True:
+                data=q.get()
+                dataToSend=data.split()
+                logging.debug("need to send this data")
+                logging.debug(dataToSend)
+                sendData(dataToSend[0],dataToSend[1],dataToSend[2])
+        logging.debug("machine data exited")
+
+
+t = threading.Thread(name = "sendDataThread", target=machineData, args=(q,))
+t.start()
 #print ("Total machines  %d" % Machine.machineCount)
 logging.debug("data collection started")
 try:
@@ -264,16 +289,17 @@ try:
                                 while data!="-1":
                                         dataTosend=data.split()
                                         logging.debug(dataTosend)
-                                        #print "poping element"
-                                        sendData(dataTosend[0],dataTosend[2],dataTosend[3])
-                                        time.sleep(3)
-                                        data=buffer.pop().rstrip()
+                                        if len(dataTosend)!=0:
+                               #print "poping element"
+                                                sendData(dataTosend[0],dataTosend[2],dataTosend[3])
+                                                time.sleep(3)
+                                                data=buffer.pop().rstrip()
                         else:
                                 logging.debug( " No local messages")
                 else:
                         logging.error(" Connection status to nifi : NO NETWORK ")
                 time.sleep(60)
-        #logging.debug("--")
+#        logging.debug("--")
 except KeyboardInterrupt:
         logging.debug(" Quit ")
         GPIO.cleanup()
