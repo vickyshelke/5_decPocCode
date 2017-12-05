@@ -275,14 +275,14 @@ def machineData(q):
                 data=q.get()
                 messagesSinceLastReboot= messagesSinceLastReboot+1
                 totalMessage=totalMessage+1
-                logging.info("Message Receivd since lasr Reboot :%d",messagesSinceLastReboot)
+                logging.info("Local Message Received since last Reboot :%d",messagesSinceLastReboot)
 
                 fd = open("testfile.txt", "w+")
                 fd.write(str(totalMessage))
                 fd.close()
                 dataToSend=data.split()
-                logging.debug("need to send this data")
-                logging.debug(dataToSend)
+                #logging.debug("need to send this data")
+                #logging.debug(dataToSend)
                 sendData(dataToSend[0],dataToSend[1],dataToSend[2])
         logging.debug("machine data exited")
 
@@ -306,7 +306,7 @@ try:
                                                 time.sleep(3)
                                                 data=buffer.pop().rstrip()
                         else:
-                                logging.debug( " No local messages")
+                                #logging.debug( " No local messages")
                 else:
                         logging.error(" Connection status to nifi : NO NETWORK ")
                 time.sleep(60)
