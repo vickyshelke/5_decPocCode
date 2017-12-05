@@ -299,13 +299,13 @@ try:
                         if data!="-1":
                                 while data!="-1":
                                         dataTosend=data.split()
-                                        logging.debug(dataTosend)
+                                        #logging.debug(dataTosend)
                                         if len(dataTosend)!=0:
                                #print "poping element"
                                                 sendData(dataTosend[0],dataTosend[2],dataTosend[3])
                                                 time.sleep(3)
                                                 data=buffer.pop().rstrip()
-                        else:
+                       # else:
                                 #logging.debug( " No local messages")
                 else:
                         logging.error(" Connection status to nifi : NO NETWORK ")
