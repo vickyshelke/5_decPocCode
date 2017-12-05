@@ -10,7 +10,7 @@ logConfig.readfp(open(r'logConfig.txt'))
 BUFFER_SIZE = logConfig.get('log-config', 'BUFFER_SIZE')
 FILENAME="BUFFER"
 if BUFFER_SIZE > 10000:
-        print "size of buffer excedded setting it to default"
+        print "size of buffer exceeded setting it to default"
         BUFFER_SIZE = 10000
 def string_conditioned(string):
     return string.decode('string_escape').rstrip() + '\n'
