@@ -7,11 +7,15 @@ import os
 import ConfigParser
 logConfig = ConfigParser.ConfigParser()
 logConfig.readfp(open(r'logConfig.txt'))
-BUFFER_SIZE = logConfig.get('log-config', 'BUFFER_SIZE')
+bufferSize = logConfig.get('log-config', 'BUFFER_SIZE')
 FILENAME="BUFFER"
-if BUFFER_SIZE > 10000:
-        print "size of buffer exceeded setting it to default"
+BUFFER_SIZE=0
+if int(bufferSize) > 10000:
+#        print "size of buffer exceeded setting it to default"
         BUFFER_SIZE = 10000
+else :
+        BUFFER_SIZE=int(bufferSize)
+
 def string_conditioned(string):
     return string.decode('string_escape').rstrip() + '\n'
 def pop():
